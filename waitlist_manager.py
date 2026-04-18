@@ -3,6 +3,20 @@ from room import Room
 from reservation import Reservation
 from schedule_bst import ScheduleBST
 
+class CustomStack:
+    def __init__(self):
+        self.items = []
+    def push(self, item):
+        self.items.append(item)
+    def pop(self):
+        if self.is_empty():
+            return None
+        return self.items.pop()
+    def is_empty(self):
+        return len(self.items) == 0
+    def size(self):
+        return len(self.items)
+
 class CustomQueue:
     def __init__(self):
         self.items = []
@@ -41,7 +55,7 @@ class WaitlistManager:
         self.room_inventory = []
         self.waitlists = {}
         self.active_reservations = {}
-        self.cancellation_history = []
+        self.cancellation_history = CustomStack()
         self.schedule_tree = ScheduleBST()
         self.next_reservation_id = 1
 
@@ -76,8 +90,12 @@ class WaitlistManager:
         return True
 
     def request_room(self, student,room_id,time_block):
-        if not isinstance(student.student_id, int):
-            return "Error: Student ID must be an integer."
+        try:
+            student_id_int = int(student.student_id)
+            if len(str(student_id_int)) != 5:
+                return "Error: Student ID must be a 5-digit integer."
+        except (ValueError, TypeError):
+            return "Error: Invalid data type for Student ID. Must be an integer."
         if not self._is_valid_time_block(time_block):
             return "Error: Invalid time block. Use 1000 through 2000 in 1-hour increments."
         room = self._find_room_by_id(room_id)
@@ -108,12 +126,13 @@ class WaitlistManager:
     def process_cancellation(self, reservation_id):
         if reservation_id not in self.active_reservations:
             return "Error: Reservation ID not found."
-        reservation =self.active_reservations.pop(reservation_id)
-        self.cancellation_history.append(reservation)
+        reservation = self.active_reservations.pop(reservation_id)
+        self.cancellation_history.push(reservation)
         self.schedule_tree.remove_reservation(reservation_id, reservation.time_block)
-        room_id=  reservation.room.room_id
-        time_block=  reservation.time_block
-        queue= self.waitlists[(room_id, time_block)]
+
+        room_id = reservation.room.room_id
+        time_block = reservation.time_block
+        queue = self.waitlists[(room_id, time_block)]
         if not queue.is_empty():
             next_student = queue.dequeue()
             new_reservation_id = self._generate_reservation_id()
@@ -132,8 +151,8 @@ class WaitlistManager:
         return f"Reservation {reservation_id} canceled. {room_id} at {time_block} is now free."
 
     def undo_cancellation(self):
-        if len(self.cancellation_history) == 0:
-            return "Notice: There are no recent cancellations to undo."
+        if self.cancellation_history.is_empty():
+            return "Notice: There are no recent cancellations to undo"
         reservation= self.cancellation_history.pop()
         if self.is_room_available(reservation.room.room_id, reservation.time_block):
             self.active_reservations[reservation.reservation_id] = reservation
