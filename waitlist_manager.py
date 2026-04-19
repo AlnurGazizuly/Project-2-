@@ -38,18 +38,26 @@ class CustomQueue:
 
 class WaitlistManager:
     VALID_TIME_BLOCKS = [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000]
-    DEFAULT_ROOM_NAMES = [
-        "British Library Room",
-        "Rothko Room",
-        "Achilles Room",
-        "Teahouse Room",
-        "Da Vinci Room",
-        "Kahlo Room",
-        "Warhol Room",
-        "Fallingwater Room",
-        "Picasso Room",
-        "Monet Room"
-    ]
+    DEFAULT_LIBRARY_DATA = {
+        "Ellen Clarke Bertrand Library": {
+            "Level 2": [
+                "British Library Room",
+                "Rothko Room",
+                "Achilles Room",
+                "Teahouse Room"
+            ],
+            "Lower Level 1": [
+                "Da Vinci Room",
+                "Kahlo Room",
+                "Warhol Room"
+            ],
+            "Lower Level 2": [
+                "Fallingwater Room",
+                "Picasso Room",
+                "Monet Room"
+            ]
+        }
+    }
 
     def __init__(self):
         self.room_inventory = []
@@ -60,10 +68,17 @@ class WaitlistManager:
         self.next_reservation_id = 1
 
     def initialize_default_rooms(self):
-        for room_name in self.DEFAULT_ROOM_NAMES:
-            self.add_room_to_inventory(Room(room_name, capacity = 6))
+        for building,floors in self.DEFAULT_LIBRARY_DATA.items():
+            for floor,rooms in floors.items():
+                for room_name in rooms:
+                    self.add_room_to_inventory(Room(room_name, capacity=6))
+
+    def get_library_data(self):
+        return self.DEFAULT_LIBRARY_DATA
 
     def add_room_to_inventory(self, room):
+        if self._find_room_by_id(room.room_id) is not None:
+            return
         self.room_inventory.append(room)
         for time_block in self.VALID_TIME_BLOCKS:
             self.waitlists[(room.room_id, time_block)] = CustomQueue()

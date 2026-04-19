@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import messagebox
 from waitlist_manager import WaitlistManager
 from student import Student
-from room import Room
 
 
 class BookingApp:
@@ -14,19 +13,8 @@ class BookingApp:
         self.manager = WaitlistManager()
         self.student_history = {}
 
-        self.library_data = {
-            "Ellen Clarke Bertrand Library": {
-                "Level 2": ["Achilles Room", "British Library Room", "East Reading Room"],
-                "Level 1 (Main Floor)": ["Library Lab BERT 025", "Podcast Studio"],
-                "Lower Level 1": ["Da Vinci Room", "Map Room"],
-                "Lower Level 2": ["Fallingwater Room", "Rothko Room"]
-            }
-        }
-
-        for bldg, floors in self.library_data.items():
-            for floor, rooms in floors.items():
-                for r_name in rooms:
-                    self.manager.add_room_to_inventory(Room(r_name, capacity=6))
+        self.library_data = self.manager.get_library_data()
+        self.manager.initialize_default_rooms()
 
         tk.Label(root, text="Student ID (5 digits):").pack(pady=5)
         self.id_entry = tk.Entry(root)
@@ -85,10 +73,10 @@ class BookingApp:
         self.floor_var.set(floor)
         for widget in self.rooms_frame.winfo_children():
             widget.destroy()
+        self.room_vars= {}
         rooms = self.library_data[building][floor]
         for room_name in rooms:
-            if room_name not in self.room_vars:
-                self.room_vars[room_name] = tk.BooleanVar()
+            self.room_vars[room_name] =tk.BooleanVar()
             chk = tk.Checkbutton(self.rooms_frame, text=room_name, variable=self.room_vars[room_name])
             chk.pack(anchor="w")
 
@@ -127,7 +115,7 @@ class BookingApp:
         student_id = self.id_entry.get()
         if not student_id:
             messagebox.showwarning("Warning", "Please enter a Student ID.")
-            retur
+            return
         if student_id not in self.student_history or len(self.student_history[student_id]) == 0:
             messagebox.showwarning("Warning", f"No recent bookings found for Student ID {student_id}.")
             return
